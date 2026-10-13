@@ -1,98 +1,98 @@
 # pmo-kit
 
-面向项目负责人、PMO 和咨询顾问的**本地优先**项目控制台。用一份可读、可 diff 的 `project-plan.json` 管理 WBS、进度、日历、RAID 和课题，并导出会议与客户材料。
+プロジェクト責任者、PMO、コンサルタント向けの**ローカル優先**プロジェクト作業台です。人が読めて差分を取れる `project-plan.json` 一式で、WBS、進捗、カレンダー、RAID、課題を管理し、会議資料と顧客向け成果物を出力します。
 
-当前版本 **1.1.1**。它不是 Jira 或 MS Project 的替代品，也不提供账号、云同步或实时协作。
+現在のバージョンは **1.1.1** です。Jira や MS Project の代替ではなく、アカウント、クラウド同期、リアルタイム共同編集はありません。
 
-## 能做什么
+## できること
 
-在浏览器里打开工作台：
+ブラウザの作業台:
 
-- 分层 WBS：增删改、缩进、复制、列宽、行内编辑、撤销/重做
-- 计划条、实绩条、里程碑和依赖关系
-- 以状态日为基准的稲妻线（进度折线）
-- 日本祝日与定例会议，并可把会议交给 Outlook 本地或 Outlook Web
-- 项目概览、RAID、变更履历
-- 课题的状态流转：交接、受领、期限变更申请、要更新队列
-- JSON 导入导出，以及简化的 Excel 往返
+- 階層つき WBS。追加、編集、削除、インデント、複製、列幅調整、インライン編集、元に戻す / やり直す
+- 計画バー、実績バー、マイルストーン、依存関係
+- 状態日を基準にした稲妻線（進捗折線）
+- 日本の祝日と定例会議。Outlook ローカルと Outlook Web へ予定を渡せる
+- プロジェクト概要、RAID、変更履歴
+- 課題の状態遷移。引き渡し、受領、期日変更の申請、要更新キュー
+- JSON の入出力と、簡略化した Excel 往復
 
-在命令行生成交付包：
+コマンドラインで作る成果物:
 
-- `plan.html`：浏览器打开后可打印为 PDF
+- `plan.html`。ブラウザで開き、PDF として印刷できる
 - `wbs.csv` / `schedule.csv` / `milestones.csv`
-- `gantt.mmd`：Mermaid 甘特图
-- `reports/weekly-status-latest.md`：周报草稿
-- `status-summary.json`：加权进度和偏差摘要
+- `gantt.mmd`。Mermaid のガントチャート
+- `reports/weekly-status-latest.md`。週次ステータスの下書き
+- `status-summary.json`。加重進捗と差異の要約
 
-## 不包含什么
+## 含まれないもの
 
-这些是明确放在后面、或不进入核心范围的能力：
+次の機能は後回しにするか、中核の範囲に入れていません。
 
-- 账号、权限、实时协作、云端同步
-- 自动排程引擎
-- 多项目组合视图
-- 与参考 Excel 模板的像素级、公式级复刻
-- 标准 WBS 模板库
-- 用 JSON Schema（`ajv`）做的独立校验文件。运行时边界校验已经在 `src/domain/project-plan.ts`
+- アカウント、権限、リアルタイム共同編集、クラウド同期
+- 自動スケジューリングエンジン
+- 複数プロジェクトのポートフォリオビュー
+- 参照 Excel テンプレートのピクセル単位、数式単位の再現
+- 標準 WBS テンプレートライブラリ
+- JSON Schema（`ajv`）による独立した検証ファイル。実行時の境界検証は `src/domain/project-plan.ts` にあります
 
-`examples/development/project-plan.json` 是工作台的示例计划。里面的任务状态用来演示画面，不代表本仓库的发行完成度。
+`examples/development/project-plan.json` は作業台のサンプル計画です。記載されているタスク状態は画面確認用であり、このリポジトリのリリース完了度を表しません。
 
-## 环境
+## 環境
 
-- Node.js 20 或更高
-- 现代浏览器
+- Node.js 20 以上
+- モダンブラウザ
 
-## 快速开始
+## はじめに
 
 ```bash
 npm install
 npm run serve
 ```
 
-浏览器打开 [http://localhost:4173/web/](http://localhost:4173/web/)。第一次会载入开发示例计划，之后的编辑保存在本机 `localStorage`。
+ブラウザで [http://localhost:4173/web/](http://localhost:4173/web/) を開きます。初回は開発用サンプル計画を読み込み、その後の編集はこのブラウザの `localStorage` に保存されます。
 
-生成交付包：
+成果物を生成する:
 
 ```bash
 npm run render:development
-# 输出在 examples/development/out/ ，该目录不入库
+# 出力先は examples/development/out/ 。このディレクトリはコミットしない
 ```
 
-渲染自己的计划：
+自分の計画から成果物を作る:
 
 ```bash
 npm run render -- --in path/to/project-plan.json --out path/to/out
 ```
 
-字段约定见 [`schema/project-plan.schema.md`](./schema/project-plan.schema.md)。
+フィールドの取り決めは [`schema/project-plan.schema.md`](./schema/project-plan.schema.md) を参照してください。
 
-检查：
+確認:
 
 ```bash
 npm test
 npm run typecheck
 ```
 
-## 仓库结构
+## リポジトリ構成
 
 ```text
 pmo-kit/
-├─ web/                 # 浏览器工作台
-├─ src/                 # 计划校验、交付物渲染、Excel 往返
-├─ schema/              # project-plan 字段约定
-├─ examples/development/# 可公开的示例计划
-├─ inputs/              # 参考模板。inputs/private/ 只留在本机
-├─ docs/                # 版本规则、变更记录和设计说明
-├─ server.js            # 本地静态服务
-└─ VERSION              # 版本正本
+├─ web/                 # ブラウザ作業台
+├─ src/                 # 計画検証、成果物生成、Excel 往復
+├─ schema/              # project-plan のフィールド取り決め
+├─ examples/development/# 公開できるサンプル計画
+├─ inputs/              # 参照テンプレート。inputs/private/ はローカルのみ
+├─ docs/                # バージョン規則、変更履歴、設計説明
+├─ server.js            # ローカル静的サーバ
+└─ VERSION              # バージョンの正本
 ```
 
-客户计划、未脱敏的 Excel 和其他私有输入放在 `inputs/private/`。这个目录已被 `.gitignore` 排除，不要提交。
+顧客の計画、個人情報や顧客情報を含む Excel、その他の非公開入力は `inputs/private/` に置きます。このディレクトリは `.gitignore` 済みなので、コミットしないでください。
 
-## 语言
+## 言語
 
-工作台、命令行提示和代码注释使用日语。设计说明以中文为主，变更记录以日语为主。对话语言不影响仓库里的界面文案。
+作業台、コマンドラインの表示、ソースコード内のコメントは日本語です。設計文書は主に中国語、変更履歴は日本語です。会話の言語は、リポジトリ内の画面文言には影響しません。
 
-## 许可
+## ライセンス
 
-仓库公开，便于阅读和运行。目前没有附加开源许可证，不授予再分发或商用许可。若需要使用、修改或再分发，请先与作者确认。
+リポジトリは閲覧と実行ができるよう公開しています。オープンソースライセンスは付与しておらず、再配布や商用利用を許諾していません。利用、改変、再配布が必要な場合は、事前に作者へ確認してください。
