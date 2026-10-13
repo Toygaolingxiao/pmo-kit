@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>pmo-kit | PMO プロジェクト管理</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="./index.html"><span class="brand-mark">P</span><span>pmo-kit</span><span class="version-tag" id="appVersion">Ver 1.1.1</span><span class="product-by">A TAKAE PRODUCTION</span></a>
+        <nav class="topnav" aria-label="メインナビゲーション">
+          <button class="nav-link active" data-view="overview">プロジェクト概要</button>
+          <button class="nav-link" data-view="wbs">WBS</button>
+          <button class="nav-link" data-view="tickets">課題</button>
+          <button class="nav-link" data-view="raid">リスク・課題・意思決定</button>
+        </nav>
+        <div class="top-actions">
+          <label class="actor-field">操作者<input id="actorInput" list="actorOptions" placeholder="名前" autocomplete="off" /></label>
+          <datalist id="actorOptions"></datalist>
+          <button class="button button-quiet" id="exportButton">計画データを出力</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div>
+            <p class="kicker">PMO プロジェクト推進ダッシュボード</p>
+            <h1>プロジェクト計画・進捗管理</h1>
+            <p class="hero-copy">WBSを計画の正本とし、Excel連携とガントチャート進捗線により、プロジェクトの最新状況を一元管理します。</p>
+          </div>
+          <div class="hero-meta">
+            <span class="status-badge"><span class="status-dot"></span><strong id="overallStatus">順調</strong></span>
+            <span class="data-date">基準日：<strong id="dataDate">-</strong></span>
+          </div>
+        </section>
+
+        <section class="project-strip">
+          <div>
+            <span class="strip-label">プロジェクト</span>
+            <strong id="projectName">読み込み中</strong>
+          </div>
+          <div>
+            <span class="strip-label">バージョン / ベースライン</span>
+            <strong id="baseline">Ver 1.0</strong>
+          </div>
+          <div>
+            <span class="strip-label">責任者</span>
+            <strong id="projectOwner">-</strong>
+          </div>
+          <div>
+            <span class="strip-label">計画期間</span>
+            <strong id="deliveryWindow">-</strong>
+          </div>
+        </section>
+
+        <section class="view-panel active" data-panel="overview">
+          <div class="section-heading">
+            <div>
+              <p class="kicker">今週の管理ポイント</p>
+              <h2>状況を把握し、次の対応を決める。</h2>
+            </div>
+            <button class="button button-dark" data-view-target="wbs">WBSを表示</button>
+          </div>
+          <div class="metric-grid">
+            <article class="metric">
+              <span class="metric-label">進捗率</span>
+              <strong id="progressMetric">0%</strong>
+              <span class="metric-note" id="progressNote">末端作業の加重平均</span>
+            </article>
+            <article class="metric">
+              <span class="metric-label">未完了マイルストーン</span>
+              <strong id="milestoneMetric">0</strong>
+              <span class="metric-note">次の確認ポイント</span>
+            </article>
+            <article class="metric metric-risk">
+              <span class="metric-label">未対応の管理項目</span>
+              <strong id="raidMetric">0</strong>
+              <span class="metric-note">担当者による確認が必要</span>
+            </article>
+            <article class="metric">
+              <span class="metric-label">要決定事項</span>
+              <strong id="decisionMetric">0</strong>
+              <span class="metric-note">意思決定の記録</span>
+            </article>
+          </div>
+
+          <div class="overview-grid">
+            <article class="surface timeline-surface">
+              <div class="surface-heading">
+                <div>
+                  <h3>マイルストーン</h3>
+                  <p>現在の約束事項と完了条件を確認します。</p>
+                </div>
+                <span class="surface-tag">基準計画</span>
+              </div>
+              <div class="milestone-line" id="milestones"></div>
+            </article>
+            <article class="surface">
+              <div class="surface-heading">
+                <div>
+                  <h3>マネジメント注視事項</h3>
+                  <p>次回の管理会議で確認すべき事項です。</p>
+                </div>
+              </div>
+              <div class="attention-list" id="attentionList"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view-panel" data-panel="wbs">
+          <div class="section-heading">
+            <div>
+              <p class="kicker">作業計画</p>
+              <h2>WBSとスケジュール</h2>
+              <p class="section-copy">作業項目、計画、実績、依存関係を一つの画面で管理します。</p>
+            </div>
+            <div class="view-actions">
+              <button class="button button-quiet" id="undoButton" disabled>元に戻す</button>
+              <button class="button button-quiet" id="redoButton" disabled>やり直す</button>
+              <button class="button button-quiet" id="importButton">計画データを取り込む</button>
+              <button class="button button-dark" id="newTaskButton">作業を追加</button>
+            </div>
+          </div>
+          <div class="wbs-surface surface">
+            <div class="wbs-toolbar">
+              <div class="toolbar-group"><strong id="taskCount">0</strong> 件の作業 <span class="toolbar-divider"></span><span id="visibleTaskCount">0</span> 件を表示中</div>
+              <div class="toolbar-group">
+                <label class="compact-field">状態 <select id="taskFilter"><option value="all">すべて</option><option value="todo">未着手</option><option value="in_progress">進行中</option><option value="done">完了</option><option value="deferred">保留</option></select></label>
+                <label class="compact-field">表示期間 <select id="rangeSelect"><option value="project">プロジェクト期間</option><option value="30">30日</option><option value="60">60日</option><option value="90">90日</option><option value="180">180日</option></select></label>
+                <label class="compact-field">開始日 <input id="rangeStartInput" type="date" /></label>
+                <label class="compact-field">終了日 <input id="rangeEndInput" type="date" /></label>
+                <button class="mini-button" id="applyRangeButton">期間を適用</button>
+                <label class="compact-field">検索 <input id="taskSearch" type="search" placeholder="作業名または担当者" /></label>
+              </div>
+            </div>
+            <div class="wbs-edit-toolbar" aria-label="WBS 編集操作">
+              <span><strong id="selectedTaskCount">0</strong> 件を選択中</span>
+              <button class="mini-button" id="moveTaskUp" disabled>上へ</button>
+              <button class="mini-button" id="moveTaskDown" disabled>下へ</button>
+              <button class="mini-button" id="indentTask" disabled>インデント</button>
+              <button class="mini-button" id="outdentTask" disabled>反インデント</button>
+              <button class="mini-button" id="duplicateTask" disabled>複製</button>
+              <button class="mini-button" id="deleteSelectedTasks" disabled>選択を削除</button>
+              <button class="mini-button" id="clearTaskSelection" disabled>選択を解除</button>
+            </div>
+            <div class="wbs-calendar-toolbar">
+              <div class="toolbar-group">
+                <button class="mini-button" id="prevMonthBtn" title="30日前へ移動">−1ヶ月</button>
+                <button class="mini-button" id="prevWeekBtn" title="7日前へ移動">−1週</button>
+                <button class="mini-button" id="todayPeriod" title="基準日（今日）を中央に表示">基準日</button>
+                <button class="mini-button" id="nextWeekBtn" title="7日後へ移動">+1週</button>
+                <button class="mini-button" id="nextMonthBtn" title="30日後へ移動">+1ヶ月</button>
+              </div>
+              <div class="toolbar-group"><button class="mini-button" id="setHolidayButton">休日設定</button><button class="mini-button" id="setMeetingButton">定例会議</button><span class="calendar-legend"><i class="phase-swatch"></i>親タスク <i class="inprogress-swatch"></i>進行中 <i class="late-swatch"></i>遅延 <i class="done-swatch"></i>完了 <i class="todo-swatch"></i>未着手 <i class="holiday-swatch"></i>休日 <i class="meeting-swatch"></i>定例 <i class="status-date-swatch"></i>状態日 <i class="lightning-swatch"></i>進捗折線</span><span id="calendarRange">-</span></div>
+            </div>
+            <div class="wbs-table" id="wbsTable"></div>
+          </div>
+        </section>
+
+        <section class="view-panel" data-panel="tickets" id="ticketPanel">
+          <div class="section-heading">
+            <div>
+              <p class="kicker">課題運用</p>
+              <h2>課題</h2>
+              <p class="section-copy">担当者の受領、期日、メンションを状態のルールに沿って進めます。玉を渡すと未着手に戻り、受け取った担当者が受領します。</p>
+            </div>
+            <button class="button button-dark" id="addTicketButton">課題を起票</button>
+          </div>
+          <div class="ticket-queues" id="ticketQueues"></div>
+          <div class="ticket-layout">
+            <div class="ticket-list" id="ticketList"></div>
+            <article class="surface ticket-detail" id="ticketDetail"></article>
+          </div>
+        </section>
+
+        <section class="view-panel" data-panel="raid">
+          <div class="section-heading">
+            <div>
+              <p class="kicker">プロジェクト管理</p>
+              <h2>リスク・課題・意思決定</h2>
+              <p class="section-copy">リスク、課題、前提、依存関係をWBSと意思決定に結び付けて管理します。</p>
+            </div>
+            <button class="button button-dark" id="addRaidButton">管理項目を追加</button>
+          </div>
+          <div class="raid-grid" id="raidGrid"></div>
+        </section>
+
+      </main>
+      <footer class="footer">
+        <div><strong>pmo-kit</strong> · Ver 1.1.1 <span class="footer-divider">|</span> <span class="product-credit">A TAKAE PRODUCTION</span></div>
+        <div>PMO プロジェクト推進ダッシュボード</div>
+      </footer>
+    </div>
+    <div id="taskContextMenu" class="context-menu" hidden>
+      <button data-action="addChild">➕ 子タスクを追加</button>
+      <button data-action="insertBelow">⬇️ 下にタスクを挿入</button>
+      <button data-action="editDetails">✏️ タスク詳細を編集...</button>
+      <div class="menu-divider"></div>
+      <div class="menu-label">進捗率を設定</div>
+      <div class="menu-pct-group">
+        <button data-action="setPct" data-val="100">100%</button>
+        <button data-action="setPct" data-val="75">75%</button>
+        <button data-action="setPct" data-val="50">50%</button>
+        <button data-action="setPct" data-val="25">25%</button>
+        <button data-action="setPct" data-val="0">0%</button>
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-label">状態を変更</div>
+      <button data-action="setStatus" data-val="done">完了 (Done)</button>
+      <button data-action="setStatus" data-val="in_progress">進行中 (In Progress)</button>
+      <button data-action="setStatus" data-val="todo">未着手 (To Do)</button>
+      <button data-action="setStatus" data-val="deferred">保留 (Deferred)</button>
+      <div class="menu-divider"></div>
+      <button data-action="duplicate">📋 タスクを複製</button>
+      <button data-action="delete" class="menu-danger">🗑️ タスクを削除</button>
+    </div>
+    <div id="statusQuickMenu" class="status-quick-menu" hidden>
+      <button data-status="done" class="status-menu-item"><span class="status-chip status-done">完了</span></button>
+      <button data-status="in_progress" class="status-menu-item"><span class="status-chip status-in_progress">進行中</span></button>
+      <button data-status="todo" class="status-menu-item"><span class="status-chip status-todo">未着手</span></button>
+      <button data-status="deferred" class="status-menu-item"><span class="status-chip status-deferred">保留</span></button>
+    </div>
+    <input id="importFile" type="file" accept="application/json,.json" hidden />
+    <dialog id="taskDialog" class="task-dialog">
+      <form method="dialog" id="taskForm">
+        <div class="dialog-heading"><div><p class="kicker">WBS編集</p><h2 id="dialogTitle">作業を追加</h2></div><button type="button" class="icon-button" data-close-dialog="taskDialog" aria-label="閉じる">×</button></div>
+        <input id="taskId" type="hidden" />
+        <div class="form-grid">
+          <label>WBS 番号<input id="taskIdInput" required /></label>
+          <label>階層<input id="taskLevel" type="number" min="1" max="9" value="3" required /></label>
+          <label class="span-2">作業名<input id="taskName" required /></label>
+          <label>種別<select id="taskType"><option value="task">作業</option><option value="phase">フェーズ</option><option value="milestone">マイルストーン</option></select></label>
+          <label>ステータス<select id="taskStatus"><option value="todo">未着手</option><option value="in_progress">進行中</option><option value="done">完了</option><option value="deferred">保留</option></select></label>
+          <label>担当者<input id="taskOwner" required /></label>
+          <label>作業サイクル<input id="taskSprint" /></label>
+          <label>計画開始日<input id="taskStart" type="date" required /></label>
+          <label>計画終了日<input id="taskEnd" type="date" required /></label>
+          <label>計画工数<input id="taskEffort" type="number" min="0" step="0.5" value="1" required /></label>
+          <label>進捗率<input id="taskPct" type="number" min="0" max="100" value="0" required /></label>
+          <label>実績開始日<input id="taskActualStart" type="date" /></label>
+          <label>実績終了日<input id="taskActualEnd" type="date" /></label>
+          <label>実績工数<input id="taskActualEffort" type="number" min="0" step="0.5" value="0" /></label>
+          <label class="span-2">成果物<input id="taskDeliverable" required /></label>
+          <label class="span-2">受入条件<textarea id="taskAcceptance" rows="2"></textarea></label>
+          <label class="span-2">依存関係（番号・種別・遅延日数）<input id="taskRelations" placeholder="1:FS:0, 1.1:SS:2" /></label>
+        </div>
+        <p class="form-error" id="taskFormError" role="alert"></p>
+        <div class="dialog-actions"><button type="button" class="button button-quiet" data-close-dialog="taskDialog">キャンセル</button><button type="submit" class="button button-dark" id="saveTaskButton">保存</button></div>
+      </form>
+    </dialog>
+    <dialog id="holidayDialog" class="task-dialog">
+      <form method="dialog" id="holidayForm">
+        <div class="dialog-heading"><div><p class="kicker">カレンダー</p><h2>休日設定</h2></div><button type="button" class="icon-button" data-close-dialog="holidayDialog" aria-label="閉じる">×</button></div>
+        <label class="toggle-line"><input id="weekendHoliday" type="checkbox" checked /> 土日を休日として扱う</label>
+        <div class="holiday-actions"><button type="button" class="button button-quiet" id="addJapanHolidaysButton">日本の祝日を追加</button><span>プロジェクト期間の祝日を自動追加</span></div>
+        <div class="holiday-picker"><label>会社休日の日付<input id="holidayDatePicker" type="date" /></label><label>名称<input id="holidayName" value="会社休日" /></label><button type="button" class="button button-quiet" id="addHolidayDateButton">休日を追加</button></div>
+        <div class="holiday-list" id="holidayList"></div>
+        <div class="dialog-actions"><button type="button" class="button button-quiet" data-close-dialog="holidayDialog">キャンセル</button><button type="submit" class="button button-dark" id="saveHolidayButton">保存</button></div>
+      </form>
+    </dialog>
+    <dialog id="meetingDialog" class="task-dialog">
+      <form method="dialog" id="meetingForm">
+        <div class="dialog-heading"><div><p class="kicker">カレンダー</p><h2>定例会議</h2><p class="dialog-subtitle">Outlookの定期予定と同じように、繰り返し条件を設定できます。</p></div><button type="button" class="icon-button" data-close-dialog="meetingDialog" aria-label="閉じる">×</button></div>
+        <div class="form-grid">
+          <label class="span-2">会議名<input id="meetingName" value="週次定例会議" required /></label>
+          <label>開始時刻<input id="meetingStartTime" type="time" value="10:00" required /></label>
+          <label>終了時刻<input id="meetingEndTime" type="time" value="11:00" required /></label>
+          <label>繰り返し<select id="meetingFrequency"><option value="daily">毎日</option><option value="weekly" selected>毎週</option><option value="monthly">毎月</option><option value="yearly">毎年</option></select></label>
+          <label>間隔<input id="meetingInterval" type="number" min="1" max="52" value="1" required /></label>
+          <fieldset class="span-2 weekday-field"><legend>曜日（毎週）</legend><div class="weekday-options"><label><input type="checkbox" name="meetingWeekday" value="1" checked /> 月曜日</label><label><input type="checkbox" name="meetingWeekday" value="2" /> 火曜日</label><label><input type="checkbox" name="meetingWeekday" value="3" /> 水曜日</label><label><input type="checkbox" name="meetingWeekday" value="4" /> 木曜日</label><label><input type="checkbox" name="meetingWeekday" value="5" /> 金曜日</label><label><input type="checkbox" name="meetingWeekday" value="6" /> 土曜日</label><label><input type="checkbox" name="meetingWeekday" value="0" /> 日曜日</label></div></fieldset>
+          <label>開始日<input id="meetingStartDate" type="date" required /></label>
+          <label>終了日<input id="meetingEndDate" type="date" /></label>
+          <label>終了条件<select id="meetingEndMode"><option value="date" selected>終了日まで</option><option value="count">回数指定</option></select></label>
+          <label>回数<input id="meetingCount" type="number" min="1" max="500" value="25" /></label>
+        </div>
+        <p class="form-hint" id="meetingCalculationHint">終了条件に応じて、終了日と回数を自動計算します。毎週以外では曜日指定を使わず、開始日を基準に作成します。</p>
+        <div class="dialog-actions"><button type="button" class="button button-quiet" id="openOutlookButton">Outlookアプリで予定を作成</button><button type="button" class="button button-quiet" id="openOutlookWebButton">Outlook Webで予定を作成</button><button type="button" class="button button-quiet" data-close-dialog="meetingDialog">キャンセル</button><button type="submit" class="button button-dark">定例会議を保存</button></div>
+      </form>
+    </dialog>
+    <dialog id="ticketDialog" class="task-dialog">
+      <form method="dialog" id="ticketForm">
+        <div class="dialog-heading"><div><p class="kicker">課題</p><h2>課題を起票</h2></div><button type="button" class="icon-button" data-close-dialog="ticketDialog" aria-label="閉じる">×</button></div>
+        <div class="form-grid">
+          <label class="span-2">タイトル<input id="ticketTitle" required /></label>
+          <label>担当者<input id="ticketAssignee" list="actorOptions" required /></label>
+          <label>期日<input id="ticketDue" type="date" required /></label>
+          <label class="span-2">関連 WBS<input id="ticketWbs" placeholder="任意" /></label>
+          <label class="span-2 toggle-line"><input id="ticketBallUnknown" type="checkbox" /> 担当領域が不明（起票者を一時担当にし、木曜の横断定例へ上げる）</label>
+        </div>
+        <div class="dialog-actions"><button type="button" class="button button-quiet" data-close-dialog="ticketDialog">キャンセル</button><button type="submit" class="button button-dark">起票</button></div>
+      </form>
+    </dialog>
+    <dialog id="raidDialog" class="task-dialog">
+      <form method="dialog" id="raidForm">
+        <div class="dialog-heading"><div><p class="kicker">プロジェクト管理</p><h2>管理項目を追加</h2></div><button type="button" class="icon-button" data-close-dialog="raidDialog" aria-label="閉じる">×</button></div>
+        <div class="form-grid">
+          <label>種別<select id="raidType"><option value="Risk">リスク</option><option value="Issue">課題</option><option value="Assumption">前提</option><option value="Dependency">依存関係</option></select></label>
+          <label>担当者<input id="raidOwner" required /></label>
+          <label class="span-2">タイトル<input id="raidTitle" required /></label>
+          <label class="span-2">対応方針<textarea id="raidResponse" rows="3" required></textarea></label>
+        </div>
+        <div class="dialog-actions"><button type="button" class="button button-quiet" data-close-dialog="raidDialog">キャンセル</button><button type="submit" class="button button-dark">保存</button></div>
+      </form>
+    </dialog>
+    <dialog id="historyDialog" class="task-dialog">
+      <form method="dialog" id="historyForm">
+        <div class="dialog-heading"><div><p class="kicker">変更履歴</p><h2>履歴を追加</h2></div><button type="button" class="icon-button" data-close-dialog="historyDialog" aria-label="閉じる">×</button></div>
+        <label>変更内容<textarea id="historyNote" rows="4" required></textarea></label>
+        <div class="dialog-actions"><button type="button" class="button button-quiet" data-close-dialog="historyDialog">キャンセル</button><button type="submit" class="button button-dark">保存</button></div>
+      </form>
+    </dialog>
+    <div class="toast" id="toast" role="status"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

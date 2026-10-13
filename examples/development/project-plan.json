@@ -1,0 +1,633 @@
+{
+  "meta": {
+    "projectCode": "PMO-KIT-DEV",
+    "projectName": "pmo-kit WBS 開発プロジェクト",
+    "pm": "GAO",
+    "planStart": "2026-09-14",
+    "planEnd": "2026-09-30",
+    "dataDate": "2026-09-14",
+    "baseline": "Ver 1.1.0",
+    "overallStatus": "GREEN"
+  },
+  "calendar": {
+    "weekendAutoHoliday": true,
+    "holidays": [
+      {
+        "date": "2026-09-21",
+        "name": "敬老の日"
+      },
+      {
+        "date": "2026-09-22",
+        "name": "国民の休日"
+      },
+      {
+        "date": "2026-09-23",
+        "name": "秋分の日"
+      }
+    ],
+    "regularMeetings": [
+      {
+        "name": "PMO週次進捗確認会議",
+        "dayOfWeek": "1",
+        "frequency": "weekly",
+        "interval": 1,
+        "startDate": "2026-09-14",
+        "endDate": "2026-09-30",
+        "endMode": "date",
+        "count": 3,
+        "startTime": "10:00",
+        "endTime": "11:00",
+        "location": "オンライン (Teams)",
+        "attendees": "GAO",
+        "description": "週次のWBS進捗状況・稲妻線・RAID課題の確認",
+        "weekdays": [
+          "1"
+        ]
+      }
+    ]
+  },
+  "wbs": [
+    {
+      "id": "1",
+      "name": "WBS 基盤・UI アーキテクチャ",
+      "level": 1,
+      "type": "phase",
+      "status": "done",
+      "pct": 100,
+      "owner": "GAO",
+      "start": "2026-09-14",
+      "end": "2026-09-16",
+      "effortDays": 3,
+      "dependsOn": [],
+      "deliverable": "WBS 基本ワークベンチ",
+      "acceptance": "CRUD・状態管理・Undo/Redo 動作確認"
+    },
+    {
+      "id": "1.1",
+      "name": "WBS の追加・編集・削除と JSON 入出力",
+      "level": 2,
+      "type": "task",
+      "status": "done",
+      "pct": 100,
+      "owner": "GAO",
+      "start": "2026-09-14",
+      "end": "2026-09-15",
+      "effortDays": 2,
+      "dependsOn": [],
+      "deliverable": "CRUD & JSON",
+      "acceptance": "タスクの追加・編集・削除・インポート・エクスポート"
+    },
+    {
+      "id": "1.2",
+      "name": "列幅ドラッグ調整・行コンテキストメニュー",
+      "level": 2,
+      "type": "task",
+      "status": "done",
+      "pct": 100,
+      "owner": "GAO",
+      "start": "2026-09-14",
+      "end": "2026-09-16",
+      "effortDays": 2,
+      "dependsOn": [
+        "1.1"
+      ],
+      "deliverable": "高度な行・列操作",
+      "acceptance": "右クリックメニュー・ドラッグ幅変更・インライン編集"
+    },
+    {
+      "id": "2",
+      "name": "スケジュールとガントチャート",
+      "level": 1,
+      "type": "phase",
+      "status": "in_progress",
+      "pct": 75,
+      "owner": "GAO",
+      "start": "2026-09-14",
+      "end": "2026-09-21",
+      "effortDays": 8,
+      "dependsOn": [
+        "1"
+      ],
+      "deliverable": "デュアルガント & 稲妻線",
+      "acceptance": "計画バー・実績バー・稲妻線アライメント"
+    },
+    {
+      "id": "2.1",
+      "name": "親タスク集計と階層展開・折りたたみ",
+      "level": 2,
+      "type": "task",
+      "status": "done",
+      "pct": 100,
+      "owner": "GAO",
+      "start": "2026-09-14",
+      "end": "2026-09-15",
+      "effortDays": 2,
+      "dependsOn": [
+        "1"
+      ],
+      "deliverable": "階層集計エンジン",
+      "acceptance": "親タスクの日程・進捗率の自動ロールアップ"
+    },
+    {
+      "id": "2.2",
+      "name": "状態日と稲妻線（進捗折線）最適化",
+      "level": 2,
+      "type": "task",
+      "status": "in_progress",
+      "pct": 80,
+      "owner": "GAO",
+      "start": "2026-09-14",
+      "end": "2026-09-16",
+      "effortDays": 3,
+      "dependsOn": [
+        "2.1"
+      ],
+      "deliverable": "進捗線アルゴリズム",
+      "acceptance": "完了・未来未着手の垂直整列と遅延タスクの警告"
+    },
+    {
+      "id": "2.3",
+      "name": "期間ナビゲーション（前週/次週/基準日）",
+      "level": 2,
+      "type": "task",
+      "status": "in_progress",
+      "pct": 70,
+      "owner": "GAO",
+      "start": "2026-09-15",
+      "end": "2026-09-18",
+      "effortDays": 4,
+      "dependsOn": [
+        "2.2"
+      ],
+      "deliverable": "タイムライン移動",
+      "acceptance": "5段階期間シフト・カスタム日付指定"
+    },
+    {
+      "id": "2.4",
+      "name": "依存関係線とマイルストーン連動",
+      "level": 2,
+      "type": "task",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-18",
+      "end": "2026-09-21",
+      "effortDays": 4,
+      "dependsOn": [
+        "2.3"
+      ],
+      "deliverable": "依存関係可視化",
+      "acceptance": "先行・後続タスクの関連付け"
+    },
+    {
+      "id": "3",
+      "name": "カレンダーと定例会議",
+      "level": 1,
+      "type": "phase",
+      "status": "in_progress",
+      "pct": 85,
+      "owner": "GAO",
+      "start": "2026-09-14",
+      "end": "2026-09-20",
+      "effortDays": 7,
+      "dependsOn": [
+        "1"
+      ],
+      "deliverable": "プロジェクトカレンダー",
+      "acceptance": "休日・会議設定とタイムライン表示"
+    },
+    {
+      "id": "3.1",
+      "name": "日本の祝日・振替休日自動判定",
+      "level": 2,
+      "type": "task",
+      "status": "done",
+      "pct": 100,
+      "owner": "GAO",
+      "start": "2026-09-14",
+      "end": "2026-09-15",
+      "effortDays": 2,
+      "dependsOn": [
+        "1"
+      ],
+      "deliverable": "祝日計算エンジン",
+      "acceptance": "祝日名ツールチップ表示と土日判定"
+    },
+    {
+      "id": "3.2",
+      "name": "Outlook 形式の繰り返し定例会議設定",
+      "level": 2,
+      "type": "task",
+      "status": "done",
+      "pct": 100,
+      "owner": "GAO",
+      "start": "2026-09-14",
+      "end": "2026-09-16",
+      "effortDays": 3,
+      "dependsOn": [
+        "3.1"
+      ],
+      "deliverable": "会議設定ダイアログ",
+      "acceptance": "回数・終了日の相互自動計算"
+    },
+    {
+      "id": "3.3",
+      "name": "Outlook ローカル・Web 連携起動",
+      "level": 2,
+      "type": "task",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-16",
+      "end": "2026-09-20",
+      "effortDays": 5,
+      "dependsOn": [
+        "3.2"
+      ],
+      "deliverable": "メーラー連携",
+      "acceptance": "会議出席依頼のワンクリック作成"
+    },
+    {
+      "id": "4",
+      "name": "PMO ガバナンス & レポーティング",
+      "level": 1,
+      "type": "phase",
+      "status": "in_progress",
+      "pct": 40,
+      "owner": "GAO",
+      "start": "2026-09-18",
+      "end": "2026-09-26",
+      "effortDays": 9,
+      "dependsOn": [
+        "2"
+      ],
+      "deliverable": "プロジェクト統制基盤",
+      "acceptance": "RAID・ベースライン差異・週次レポート"
+    },
+    {
+      "id": "4.1",
+      "name": "RAID と意思決定ログの統合管理",
+      "level": 2,
+      "type": "task",
+      "status": "in_progress",
+      "pct": 60,
+      "owner": "GAO",
+      "start": "2026-09-18",
+      "end": "2026-09-21",
+      "effortDays": 4,
+      "dependsOn": [
+        "1"
+      ],
+      "deliverable": "RAID ビュー",
+      "acceptance": "リスク・課題・決定事項の登録と可視化"
+    },
+    {
+      "id": "4.2",
+      "name": "ベースラインと進捗差異管理",
+      "level": 2,
+      "type": "task",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-21",
+      "end": "2026-09-24",
+      "effortDays": 4,
+      "dependsOn": [
+        "2"
+      ],
+      "deliverable": "差異分析",
+      "acceptance": "初期計画と最新実績の乖離可視化"
+    },
+    {
+      "id": "4.3",
+      "name": "週次ステータスとエクスポート出力",
+      "level": 2,
+      "type": "task",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-24",
+      "end": "2026-09-26",
+      "effortDays": 3,
+      "dependsOn": [
+        "4.1",
+        "4.2"
+      ],
+      "deliverable": "週次報告機能",
+      "acceptance": "Markdown / HTML / CSV 形式の出力"
+    },
+    {
+      "id": "5",
+      "name": "Excel 双方向連携 & 属性完全再現",
+      "level": 1,
+      "type": "phase",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-20",
+      "end": "2026-09-27",
+      "effortDays": 8,
+      "dependsOn": [
+        "1"
+      ],
+      "deliverable": "Excel 相互互換エンジン",
+      "acceptance": "大中詳細項目・成果物・リモート属性の相互変換"
+    },
+    {
+      "id": "5.1",
+      "name": "ExcelJS インポート・エクスポート",
+      "level": 2,
+      "type": "task",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-20",
+      "end": "2026-09-23",
+      "effortDays": 4,
+      "dependsOn": [
+        "1"
+      ],
+      "deliverable": "Excel 読み書き",
+      "acceptance": "WBS_Templete1.xlsx スキーマとの完全往復変換"
+    },
+    {
+      "id": "5.2",
+      "name": "大項目・中項目・小項目および詳細属性再現",
+      "level": 2,
+      "type": "task",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-23",
+      "end": "2026-09-26",
+      "effortDays": 4,
+      "dependsOn": [
+        "5.1"
+      ],
+      "deliverable": "Excel 階層属性",
+      "acceptance": "成果物・受入条件・区分フィールドの編集"
+    },
+    {
+      "id": "5.3",
+      "name": "WBS テンプレートライブラリ取込",
+      "level": 2,
+      "type": "task",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-26",
+      "end": "2026-09-27",
+      "effortDays": 2,
+      "dependsOn": [
+        "5.2"
+      ],
+      "deliverable": "テンプレート取込",
+      "acceptance": "標準工程テンプレートの選択・マージ"
+    },
+    {
+      "id": "6",
+      "name": "品質検証・性能・正式版リリース",
+      "level": 1,
+      "type": "phase",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-26",
+      "end": "2026-09-30",
+      "effortDays": 5,
+      "dependsOn": [
+        "4",
+        "5"
+      ],
+      "deliverable": "正式運用版リリース",
+      "acceptance": "全検証完了とドキュメント確定"
+    },
+    {
+      "id": "6.1",
+      "name": "境界値・計算ロジック自動検証",
+      "level": 2,
+      "type": "task",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-26",
+      "end": "2026-09-28",
+      "effortDays": 3,
+      "dependsOn": [
+        "4"
+      ],
+      "deliverable": "テスト検証結果",
+      "acceptance": "日付・進捗率・階層計算のエッジケーステスト"
+    },
+    {
+      "id": "6.2",
+      "name": "複数行編集・キーボードショートカット",
+      "level": 2,
+      "type": "task",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-27",
+      "end": "2026-09-29",
+      "effortDays": 3,
+      "dependsOn": [
+        "5"
+      ],
+      "deliverable": "操作性向上",
+      "acceptance": "Enter / Tab / Esc セル移動と複数選択操作"
+    },
+    {
+      "id": "6.3",
+      "name": "Ver 1.0.0 総合評価・正式リリース",
+      "level": 2,
+      "type": "task",
+      "status": "todo",
+      "pct": 0,
+      "owner": "GAO",
+      "start": "2026-09-29",
+      "end": "2026-09-30",
+      "effortDays": 2,
+      "dependsOn": [
+        "6.1",
+        "6.2"
+      ],
+      "deliverable": "最終パッケージ",
+      "acceptance": "安定稼働確認・README・マニュアル更新"
+    }
+  ],
+  "milestones": [
+    {
+      "id": "M1",
+      "name": "WBS・ガント・稲妻線 基本動作完了",
+      "date": "2026-09-14",
+      "status": "done",
+      "exitCriteria": "WBS編集、ガント表示、稲妻線アライメント、祝日設定の動作確認完了"
+    },
+    {
+      "id": "M2",
+      "name": "Outlook連携 & PMOガバナンス機能",
+      "date": "2026-09-20",
+      "status": "in_progress",
+      "exitCriteria": "Outlook定例会議連携、RAID管理、ベースライン差異比較の完了"
+    },
+    {
+      "id": "M3",
+      "name": "Excel完全再現 & テンプレート拡張",
+      "date": "2026-09-26",
+      "status": "todo",
+      "exitCriteria": "Excel双方向変換、属性フィールド再現、テンプレート取込の完了"
+    },
+    {
+      "id": "M4",
+      "name": "Ver 1.0.0 総合検証 & 正式リリース完了",
+      "date": "2026-09-30",
+      "status": "todo",
+      "exitCriteria": "全テスト通過、回帰検証完了、本番リリース"
+    }
+  ],
+  "sprints": [
+    {
+      "id": "SP-1",
+      "name": "Sprint 1: WBS基盤・ガントチャート・稲妻線・カレンダー",
+      "start": "2026-09-14",
+      "end": "2026-09-21",
+      "goal": "ガントチャート、稲妻線、期間ナビ、定例会議のUI/ロジック完成"
+    },
+    {
+      "id": "SP-2",
+      "name": "Sprint 2: PMOガバナンス・Excel完全再現・品質検証・正式リリース",
+      "start": "2026-09-22",
+      "end": "2026-09-30",
+      "goal": "RAID管理、Excel相互互換、自動テスト、Ver 1.0.0 リリース"
+    }
+  ],
+  "roles": [
+    {
+      "id": "R1",
+      "title": "プロジェクトオーナー / PMO",
+      "person": "GAO",
+      "focus": "全体統括、要件定義、進捗・品質管理"
+    },
+    {
+      "id": "R2",
+      "title": "開発リード",
+      "person": "GAO",
+      "focus": "Web UI、ドメインロジック、Excel/Outlook連携"
+    },
+    {
+      "id": "R3",
+      "title": "品質管理 / QA",
+      "person": "GAO",
+      "focus": "計算整合性、境界値テスト、回帰検証"
+    }
+  ],
+  "raci": [
+    {
+      "activity": "WBS・ガントチャート機能開発",
+      "GAO": "A"
+    },
+    {
+      "activity": "稲妻線ロジック・凡例・UI改善",
+      "GAO": "A"
+    },
+    {
+      "activity": "Outlook・カレンダー連携",
+      "GAO": "A"
+    },
+    {
+      "activity": "Excel双方向変換・品質テスト",
+      "GAO": "A"
+    }
+  ],
+  "raid": [
+    {
+      "id": "R-01",
+      "type": "risk",
+      "title": "大規模タスク表示時の描画パフォーマンス低下",
+      "impact": "中",
+      "likelihood": "中",
+      "owner": "GAO",
+      "response": "DOM レンダリングの最適化および列リサイズ時の軽量再描画",
+      "status": "open"
+    },
+    {
+      "id": "R-02",
+      "type": "issue",
+      "title": "ブラウザ環境による Outlook 起動スキームの挙動差異",
+      "impact": "高",
+      "likelihood": "中",
+      "owner": "GAO",
+      "response": "mailto / web / app のフォールバック連携を提供",
+      "status": "mitigating"
+    },
+    {
+      "id": "R-03",
+      "type": "decision",
+      "title": "稲妻線の未着手・完了タスクのアライメント仕様確定（方法二・プランA）",
+      "impact": "高",
+      "likelihood": "低",
+      "owner": "GAO",
+      "response": "状態日基準での垂直アライメントを採用しノイズを排除",
+      "status": "closed"
+    }
+  ],
+  "tickets": [
+    {
+      "id": "T-01",
+      "title": "WBS 状態遷移の受入確認",
+      "reporter": "GAO",
+      "assignee": "開発担当",
+      "status": "todo",
+      "dueDate": "2026-10-02",
+      "wbsId": "1.1",
+      "ballUnknown": false,
+      "needsImprovement": false,
+      "dueChangeRequest": null,
+      "comments": [],
+      "lastUpdatedAt": "2026-09-30",
+      "history": [
+        {
+          "at": "2026-09-30T00:00:00.000Z",
+          "actor": "GAO",
+          "type": "create",
+          "from": "",
+          "to": "todo",
+          "note": "起票"
+        }
+      ]
+    },
+    {
+      "id": "T-02",
+      "title": "担当領域が未定の改善課題",
+      "reporter": "GAO",
+      "assignee": "GAO",
+      "status": "todo",
+      "dueDate": "2026-10-16",
+      "wbsId": "",
+      "ballUnknown": true,
+      "needsImprovement": false,
+      "dueChangeRequest": null,
+      "comments": [
+        {
+          "id": "c-1",
+          "author": "GAO",
+          "at": "2026-09-30T00:00:00.000Z",
+          "body": "自領域で見つけたが、どの領域が担当か未定。木曜の横断定例で決める。",
+          "mentions": [],
+          "reactions": []
+        }
+      ],
+      "lastUpdatedAt": "2026-09-30",
+      "history": [
+        {
+          "at": "2026-09-30T00:00:00.000Z",
+          "actor": "GAO",
+          "type": "markBallUnknown",
+          "from": "todo",
+          "to": "todo",
+          "note": "玉持ち不明。木曜の横断定例で決定する"
+        }
+      ]
+    }
+  ]
+}

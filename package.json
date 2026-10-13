@@ -1,0 +1,30 @@
+{
+  "name": "pmo-kit",
+  "version": "1.1.1",
+  "private": true,
+  "description": "Tiny consulting-grade PMO pack: project-plan.json → HTML / CSV / Mermaid / weekly status",
+  "type": "module",
+  "bin": {
+    "pmo-kit": "./src/render.ts"
+  },
+  "scripts": {
+    "serve": "node server.js",
+    "render": "node --import tsx src/render.ts",
+    "render:development": "node --import tsx src/render.ts --in examples/development/project-plan.json --out examples/development/out",
+    "excel:export": "node --import tsx src/excel.ts",
+    "excel:import": "node --import tsx src/excel.ts",
+    "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --allowImportingTsExtensions src/domain/project-control.ts src/domain/project-plan.ts src/render.ts src/excel.ts",
+    "test": "node --test web/js/ticket-fsm.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  }
+}

@@ -1,0 +1,7 @@
+# pmo-kit 開発ルール
+
+リポジトリ全体に適用する正本は
+[`.github/copilot-instructions.md`](./.github/copilot-instructions.md) とする。
+
+この `.rule` は既存のローカル運用やエディター連携との互換性のために残す。
+ルールを変更する場合は、必ず正本を先に更新し、必要に応じてこのファイルの参照説明も更新する。
