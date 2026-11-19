@@ -2,7 +2,7 @@
  * 変更履歴・RAID管理モジュール
  */
 
-import { $, $$, cleanText, STATUS_LABELS, RAID_TYPE_LABELS } from "../utils.js";
+import { $, $$, esc, STATUS_LABELS, RAID_TYPE_LABELS } from "../utils.js";
 
 /**
  * 変更履歴リストのレンダリング
@@ -25,10 +25,10 @@ export function renderHistoryList(changeLog) {
     </div>
     ${history.map((item) => `
       <div class="history-row">
-        <strong>${cleanText(item.version)}</strong>
-        <span>${item.date || item.updatedAt || "-"}</span>
-        <span>${cleanText(item.author || item.updatedBy || "-")}</span>
-        <span>${cleanText(item.note || item.content || "-")}</span>
+        <strong>${esc(item.version)}</strong>
+        <span>${esc(item.date || item.updatedAt || "-")}</span>
+        <span>${esc(item.author || item.updatedBy || "-")}</span>
+        <span>${esc(item.note || item.content || "-")}</span>
       </div>
     `).join("")}
   `;
@@ -65,14 +65,14 @@ export function renderRaidCards(raidList) {
   container.innerHTML = list.map((item) => `
     <article class="raid-card">
       <header>
-        <span class="raid-type">${RAID_TYPE_LABELS[item.type] || item.type}</span>
-        <span class="wbs-status">${STATUS_LABELS[item.status] || item.status}</span>
+        <span class="raid-type">${esc(RAID_TYPE_LABELS[item.type] || item.type)}</span>
+        <span class="wbs-status">${esc(STATUS_LABELS[item.status] || item.status)}</span>
       </header>
-      <h3>${cleanText(item.title)}</h3>
-      <p>${cleanText(item.response)}</p>
+      <h3>${esc(item.title)}</h3>
+      <p>${esc(item.response)}</p>
       <div class="raid-meta">
-        <span>担当: ${cleanText(item.owner)}</span>
-        <span>影響度 ${cleanText(item.impact)} / 発生確率 ${cleanText(item.likelihood)}</span>
+        <span>担当: ${esc(item.owner)}</span>
+        <span>影響度 ${esc(item.impact)} / 発生確率 ${esc(item.likelihood)}</span>
       </div>
     </article>
   `).join("");

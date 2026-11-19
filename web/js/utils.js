@@ -36,6 +36,20 @@ export function cleanText(value) {
 }
 
 /**
+ * HTML へ埋め込む値のエスケープです。innerHTML テンプレートへ計画データを
+ * 渡す箇所は必ずこちらを通してください（cleanText は正規化専用で、
+ * サニタイズではありません）。
+ */
+export function esc(value) {
+  return cleanText(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
  * 基準日（状態日: Status Date）を取得します。
  * プロジェクト設定に dataDate があればそれを優先し、なければ本日日付を返します。
  */

@@ -3,7 +3,7 @@
  * 状態遷移そのものは ticket-fsm.js に委譲します。
  */
 
-import { $, cleanText } from "../utils.js";
+import { $, esc } from "../utils.js";
 import {
   QUEUE_LABELS,
   TICKET_STATUS_LABELS,
@@ -20,14 +20,6 @@ const QUEUE_NOTES = {
   ballUnknown: "木曜の横断定例で担当を決める",
   improvement: "横断定例またはPM定例で拾う",
 };
-
-function esc(value) {
-  return cleanText(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 function statusChip(status) {
   const label = TICKET_STATUS_LABELS[status] || status;

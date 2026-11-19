@@ -10,7 +10,7 @@ import { createProjectRepository } from "./repository.js";
 import {
   $,
   $$,
-  cleanText,
+  esc,
   dayNumber,
   isoDate,
   daysBetween,
@@ -22,6 +22,7 @@ import {
   RAID_TYPE_LABELS,
 } from "./js/utils.js";
 import { getJapanHolidays } from "./js/holidays.js";
+import { validateProjectPlan } from "./js/plan-validator.js";
 import {
   hasChildTasks,
   calculateTaskSummary,
@@ -216,11 +217,11 @@ function renderOverview() {
       milestoneContainer.innerHTML = milestones.map((m) => `
         <div class="milestone-card">
           <div class="milestone-head">
-            <strong>${cleanText(m.name)}</strong>
-            <span class="status-chip status-${m.status}">${STATUS_LABELS[m.status] || m.status}</span>
+            <strong>${esc(m.name)}</strong>
+            <span class="status-chip status-${esc(m.status)}">${esc(STATUS_LABELS[m.status] || m.status)}</span>
           </div>
-          <div class="milestone-date">期日: ${m.date}</div>
-          ${m.exitCriteria ? `<div class="milestone-criteria">完了条件: ${cleanText(m.exitCriteria)}</div>` : ""}
+          <div class="milestone-date">期日: ${esc(m.date)}</div>
+          ${m.exitCriteria ? `<div class="milestone-criteria">完了条件: ${esc(m.exitCriteria)}</div>` : ""}
         </div>
       `).join("");
     }
@@ -237,17 +238,17 @@ function renderOverview() {
       items.push(`
         <div class="attention-row attention-late">
           <span class="status-chip status-late">遅延警告</span>
-          <strong>${cleanText(t.name)}</strong>
-          <span>担当: ${cleanText(t.owner)} / 予定終了: ${t.end}</span>
+          <strong>${esc(t.name)}</strong>
+          <span>担当: ${esc(t.owner)} / 予定終了: ${esc(t.end)}</span>
         </div>
       `);
     });
     highRisks.forEach((r) => {
       items.push(`
         <div class="attention-row attention-risk">
-          <span class="status-chip status-deferred">${cleanText(RAID_TYPE_LABELS[r.type] || r.type)}</span>
-          <strong>${cleanText(r.title)}</strong>
-          <span>担当: ${cleanText(r.owner)} / 対策: ${cleanText(r.response)}</span>
+          <span class="status-chip status-deferred">${esc(RAID_TYPE_LABELS[r.type] || r.type)}</span>
+          <strong>${esc(r.title)}</strong>
+          <span>担当: ${esc(r.owner)} / 対策: ${esc(r.response)}</span>
         </div>
       `);
     });
@@ -332,10 +333,10 @@ function renderCalendarHeader(startDay, totalDays) {
         cells.push(`<span class="${holidayClass}">${label}</span>`);
       } else if (kind === "meeting") {
         const meeting = meetings.get(curDateStr);
-        const detail = meeting ? `${cleanText(meeting.name || "定例会議")}` : "";
+        const detail = meeting ? `${esc(meeting.name || "定例会議")}` : "";
         cells.push(`<span class="${meeting ? "meeting-day" : ""}" title="${detail}">${meeting ? "●" : ""}</span>`);
       } else {
-        const holidayTitle = isHoliday ? cleanText(holidayNames.get(curDateStr)) : "";
+        const holidayTitle = isHoliday ? esc(holidayNames.get(curDateStr)) : "";
         cells.push(`<span class="${holidayClass}" title="${holidayTitle}">${dayOfMonth}<small>${["日", "月", "火", "水", "木", "金", "土"][dayOfWeek]}</small></span>`);
       }
     }
@@ -393,7 +394,7 @@ function renderWbs() {
     const actual = summary.actualStart ? `<i class="actual-bar${lateBar ? " late" : ""}" style="left:${actualLeft}%;width:${actualWidth}%"></i>` : "";
 
     const relationList = task.relations?.length ? task.relations.map((r) => `${r.predecessorId}:${r.type}:${r.lagDays}`).join(", ") : task.dependsOn?.join(", ");
-    const dependencies = relationList ? `<span class="dependency-mark" title="依存関係: ${cleanText(relationList)}">依存関係: ${task.relations?.length || task.dependsOn?.length || 0}件</span>` : "";
+    const dependencies = relationList ? `<span class="dependency-mark" title="依存関係: ${esc(relationList)}">依存関係: ${task.relations?.length || task.dependsOn?.length || 0}件</span>` : "";
     const selected = state.selectedIds.has(task.id) ? " selected" : "";
 
     const isParent = summary.isParent;
@@ -410,28 +411,28 @@ function renderWbs() {
     const statusText = delayed ? "遅延" : STATUS_LABELS[summary.status];
 
     return `
-      <div class="wbs-row${selected}" data-task-id="${task.id}" tabindex="0">
-        <span class="wbs-id">${task.id}</span>
+      <div class="wbs-row${selected}" data-task-id="${esc(task.id)}" tabindex="0">
+        <span class="wbs-id">${esc(task.id)}</span>
         <span class="wbs-name level-${Math.min(task.level, 4)}">
-          <button class="collapse-toggle" data-toggle-task="${task.id}" aria-label="階層を開閉">
+          <button class="collapse-toggle" data-toggle-task="${esc(task.id)}" aria-label="階層を開閉">
             ${hasChildTasks(state.plan.wbs, task.id) ? (state.collapsed.has(task.id) ? "＋" : "−") : ""}
           </button>
-          <button class="task-button" data-edit-task="${task.id}">
+          <button class="task-button" data-edit-task="${esc(task.id)}">
             <i class="task-type ${task.type === "phase" ? "phase" : ""}"></i>
-            <strong class="inline-cell" data-inline-field="name" data-inline-id="${task.id}" title="ダブルクリックで直接編集">${cleanText(task.name)}</strong>
+            <strong class="inline-cell" data-inline-field="name" data-inline-id="${esc(task.id)}" title="ダブルクリックで直接編集">${esc(task.name)}</strong>
             ${dependencies}
           </button>
         </span>
         <span class="wbs-status-cell">
-          <span class="${chipClass}" data-quick-status="${task.id}" title="クリックして状態を変更">${statusText}</span>
+          <span class="${chipClass}" data-quick-status="${esc(task.id)}" title="クリックして状態を変更">${statusText}</span>
         </span>
-        <span class="wbs-owner owner-editable" data-owner-task="${task.id}" title="クリックして担当者を変更">${cleanText(task.owner)}</span>
-        <span class="schedule" data-progress="${progressLeft}" title="計画 ${summary.start} - ${summary.end} / 実績 ${summary.actualStart || "-"} - ${summary.actualEnd || "-"} / 進捗 ${summary.pct}%">
+        <span class="wbs-owner owner-editable" data-owner-task="${esc(task.id)}" title="クリックして担当者を変更">${esc(task.owner)}</span>
+        <span class="schedule" data-progress="${progressLeft}" title="計画 ${esc(summary.start)} - ${esc(summary.end)} / 実績 ${esc(summary.actualStart || "-")} - ${esc(summary.actualEnd || "-")} / 進捗 ${summary.pct}%">
           <i class="today-line" style="left:${todayLeft}%"></i>
           ${actual}
           <i class="${barClasses}" style="left:${left}%;width:${width}%"></i>
         </span>
-        <button class="row-menu" data-delete-task="${task.id}" aria-label="削除">削除</button>
+        <button class="row-menu" data-delete-task="${esc(task.id)}" aria-label="削除">削除</button>
       </div>
     `;
   }).join("");
@@ -974,7 +975,7 @@ function renderHolidayList() {
   container.innerHTML = holidays.map((h, i) => `
     <div class="holiday-list-item">
       <strong>${h.date}</strong>
-      <span>${cleanText(h.name)}</span>
+      <span>${esc(h.name)}</span>
       <button type="button" data-remove-holiday="${i}">削除</button>
     </div>
   `).join("");
@@ -1144,9 +1145,9 @@ function exportPlan() {
 async function importPlan(file) {
   try {
     const imported = JSON.parse(await file.text());
-    if (!imported.meta || !Array.isArray(imported.wbs)) throw new Error("meta と wbs が必要です。");
+    const validated = validateProjectPlan(imported);
     recordChange();
-    state.plan = normalizePlan(imported);
+    state.plan = normalizePlan(validated);
     appendChange("計画データを取り込み");
     persist();
     renderAll();
@@ -1410,5 +1411,5 @@ document.addEventListener("keydown", (e) => {
 
 // 起動
 boot().catch((error) => {
-  document.body.innerHTML = `<main class="fatal-error"><h1>プロジェクトを読み込めません</h1><p>${error.message}</p></main>`;
+  document.body.innerHTML = `<main class="fatal-error"><h1>プロジェクトを読み込めません</h1><p>${esc(error.message)}</p></main>`;
 });
