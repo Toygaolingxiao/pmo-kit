@@ -167,10 +167,10 @@ function renderOverview() {
   if (projEl) projEl.textContent = meta.projectName || "プロジェクト計画・進捗管理";
 
   const baseEl = $("#baseline");
-  if (baseEl) baseEl.textContent = meta.baseline || "Ver 1.1.1";
+  if (baseEl) baseEl.textContent = meta.baseline || "Ver 1.1.2";
 
   const appVerEl = $("#appVersion");
-  if (appVerEl) appVerEl.textContent = meta.baseline ? (meta.baseline.startsWith("Ver") ? meta.baseline : `Ver ${meta.baseline}`) : "Ver 1.1.1";
+  if (appVerEl) appVerEl.textContent = meta.baseline ? (meta.baseline.startsWith("Ver") ? meta.baseline : `Ver ${meta.baseline}`) : "Ver 1.1.2";
 
   const ownerEl = $("#projectOwner");
   if (ownerEl) ownerEl.textContent = meta.pm || "GAO";
