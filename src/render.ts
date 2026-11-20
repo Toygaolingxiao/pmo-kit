@@ -5,76 +5,21 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
-  averageProgress,
   daysBetweenInclusive,
-  deriveHealth,
+  deriveHealthReport,
+  leafTasks,
   progressVariance,
+  weightedProgress,
 } from "./domain/project-control.ts";
 import { validateProjectPlan } from "./domain/project-plan.ts";
+import type { PlanStatus, ProjectPlan, WbsTask } from "./domain/project-plan.ts";
 
-type Status =
-  | "done"
-  | "in_progress"
-  | "todo"
-  | "deferred"
-  | "planned"
-  | "open"
-  | "mitigating"
-  | "accepted"
-  | "closed";
-
-type WbsItem = {
-  id: string;
-  name: string;
-  nameJa?: string;
-  level: number;
-  type: string;
-  status: Status;
-  pct: number;
-  owner: string;
-  sprint: string;
-  start: string;
-  end: string;
-  effortDays: number;
-  dependsOn: string[];
-  deliverable: string;
-  acceptance?: string;
-  checklistRef: string;
-};
-
-type Plan = {
-  meta: Record<string, string | string[]>;
-  calendar?: {
-    weekendAutoHoliday?: boolean;
-    holidays?: Array<{ date: string; type?: string; note?: string }>;
-  };
-  org?: {
-    sponsor: { name: string; title: string; duties: string[] };
-    hats: Array<{ id: string; title: string; person: string; duties: string[] }>;
-  };
-  milestones: Array<{
-    id: string;
-    name: string;
-    date: string;
-    status: Status;
-    exitCriteria: string;
-  }>;
-  sprints: Array<{ id: string; name: string; start: string; end: string; goal: string }>;
-  roles: Array<{ id: string; title: string; person: string; focus: string }>;
-  raci: Array<Record<string, string>>;
-  raid: Array<{
-    id: string;
-    type: string;
-    title: string;
-    impact: string;
-    likelihood: string;
-    owner: string;
-    response: string;
-    status: Status;
-  }>;
-  wbs: WbsItem[];
-};
+// 成果物生成はドメイン層の型を正本とする（render 独自の Plan 型は廃止）。
+type Status = PlanStatus;
+type WbsItem = WbsTask;
+type Plan = ProjectPlan;
 
 function usage(): never {
   console.error(`Usage:
@@ -109,8 +54,11 @@ function parseArgs(argv: string[]): { planPath: string; outDir: string } {
   return { planPath: resolvedPlan, outDir: resolvedOut };
 }
 
-function csvEscape(value: string | number): string {
-  const text = String(value ?? "");
+export function csvEscape(value: string | number): string {
+  let text = String(value ?? "");
+  // 表計算ソフトの数式インジェクション対策：先頭（空白の直後を含む）が
+  // = + - @ のセルは数式として実行されうるため、引用符を前置する。
+  if (/^\s*[=+\-@]/.test(text)) text = `'${text}`;
   if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
   return text;
 }
@@ -167,15 +115,21 @@ function metaText(meta: Plan["meta"], key: string, fallback = "—"): string {
   return fallback;
 }
 
+/** Mermaid の行構文を壊す文字（区切りのカンマ・セミコロン・改行等）を取り除く。 */
+export function mermaidSafe(value: string): string {
+  return value.replace(/[:#,;\n\r]/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function phaseSection(plan: Plan, id: string): string {
   const rootId = id.split(".")[0];
   const phase = plan.wbs.find((item) => item.id === rootId);
-  return (phase?.name || `Phase ${rootId}`).replace(/[:#]/g, " ");
+  return mermaidSafe(phase?.name || `Phase ${rootId}`);
 }
 
-function renderMermaid(plan: Plan): string {
+export function renderMermaid(plan: Plan): string {
   const tasks = plan.wbs.filter((w) => w.level <= 2 && w.status !== "deferred");
-  const title = metaText(plan.meta, "projectName", "Project").replace(/[:#]/g, " ");
+  const includedIds = new Set(tasks.map((w) => w.id));
+  const title = mermaidSafe(metaText(plan.meta, "projectName", "Project"));
   const lines = [
     "gantt",
     "    dateFormat  YYYY-MM-DD",
@@ -199,39 +153,50 @@ function renderMermaid(plan: Plan): string {
         item.status === "done" ? "done" :
         item.status === "in_progress" ? "active" :
         "";
-      const safe = item.name.replace(/[:#]/g, " ");
+      const safe = mermaidSafe(item.name);
       const id = `t${item.id.replace(/\./g, "_")}`;
       const tagPart = tag ? `${tag}, ` : "";
-      lines.push(`    ${safe} :${tagPart}${id}, ${item.start}, ${item.end}`);
+      // 依存関係は after で表現する（表示集合に含まれる前任だけ）。
+      const deps = (item.dependsOn ?? []).filter((dep) => includedIds.has(dep));
+      const startPart = deps.length > 0
+        ? `after ${deps.map((dep) => `t${dep.replace(/\./g, "_")}`).join(" ")}`
+        : item.start;
+      lines.push(`    ${safe} :${tagPart}${id}, ${startPart}, ${item.end}`);
     }
     lines.push("");
   }
 
   lines.push("    section Milestones");
   for (const m of plan.milestones) {
-    lines.push(`    ${m.id} ${m.name.replace(/[:#]/g, " ")} :milestone, ${m.date}, 0d`);
+    lines.push(`    ${mermaidSafe(`${m.id} ${m.name}`)} :milestone, ${m.date}, 0d`);
   }
 
   return `${lines.join("\n")}\n`;
 }
 
-function renderWeekly(plan: Plan): string {
+/** Markdown 表のセル内で表を壊す文字をエスケープする。 */
+export function mdCell(value: string | number): string {
+  return String(value ?? "").replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+}
+
+export function renderWeekly(plan: Plan): string {
   const meta = plan.meta;
-  const leaf = plan.wbs.filter((w) => w.level >= 3);
+  // 集計口径は末端タスク（統一定義）で統一する。親子を二重に数えない。
+  const leaf = leafTasks(plan.wbs);
   const done = leaf.filter((w) => w.status === "done");
-  const openWork = plan.wbs.filter((w) => w.status === "todo" || w.status === "in_progress");
-  const next = openWork.slice(0, 8);
   const openRaid = plan.raid.filter((r) => r.status === "open" || r.status === "mitigating");
   const projectName = metaText(meta, "projectName", "プロジェクト");
   const preparedBy = metaText(meta, "preparedBy", metaText(meta, "pm"));
   const baseline = metaText(meta, "baselineVersion", metaText(meta, "baseline"));
   const note = metaText(meta, "overallStatusNote", "");
   const openLeaf = leaf.filter((w) => w.status === "todo" || w.status === "in_progress");
+  // 次の焦点は末端の未完了を終了日の早い順に並べる。
+  const next = [...openLeaf].sort((a, b) => a.end.localeCompare(b.end)).slice(0, 8);
   const summary = note && note !== "—"
     ? note
     : leaf.length > 0
-      ? `データ日 ${meta.dataDate} 時点で、レベル3以上のタスクは完了 ${done.length} 件、未完了 ${openLeaf.length} 件です。`
-      : `データ日 ${meta.dataDate} 時点の未完了作業は ${openWork.length} 件です。`;
+      ? `データ日 ${meta.dataDate} 時点で、末端タスクは完了 ${done.length} 件、未完了 ${openLeaf.length} 件です。`
+      : `データ日 ${meta.dataDate} 時点で、末端タスクは登録されていません。`;
 
   const doneLines = done
     .slice(-8)
@@ -245,7 +210,7 @@ function renderWeekly(plan: Plan): string {
   const raidTable = openRaid
     .map(
       (r) =>
-        `| ${r.id} | ${r.title} | ${r.impact} | ${r.owner} | ${r.response} |`,
+        `| ${mdCell(r.id)} | ${mdCell(r.title)} | ${mdCell(r.impact)} | ${mdCell(r.owner)} | ${mdCell(r.response)} |`,
     )
     .join("\n");
 
@@ -299,7 +264,7 @@ ${asks}
 `;
 }
 
-function renderHtml(plan: Plan): string {
+export function renderHtml(plan: Plan): string {
   const meta = plan.meta;
   const planStart = String(meta.planStart);
   const planEnd = String(meta.planEnd);
@@ -308,15 +273,16 @@ function renderHtml(plan: Plan): string {
   const totalDays = daysBetween(planStart, planEnd);
   const todayPct = Math.min(100, Math.max(0, ((parseDay(dataDate) - origin) / totalDays) * 100));
 
-  const leafLike = plan.wbs.filter((w) => w.level >= 3);
+  const leafLike = leafTasks(plan.wbs);
   const done = leafLike.filter((w) => w.status === "done").length;
   const wip = leafLike.filter((w) => w.status === "in_progress").length;
   const todo = leafLike.filter((w) => w.status === "todo").length;
   const deferred = leafLike.filter((w) => w.status === "deferred").length;
-  const weighted =
-    leafLike.reduce((sum, w) => sum + w.pct, 0) / Math.max(1, leafLike.length);
+  const weighted = weightedProgress(leafLike);
+  const healthReport = deriveHealthReport(leafLike, dataDate, plan.calendar);
 
   const overall = String(meta.overallStatus || "GREEN");
+  const healthConflict = Boolean(meta.overallStatus) && overall !== healthReport.status;
   const overallClass =
     overall === "GREEN" ? "ok" : overall === "AMBER" ? "warn" : "risk";
 
@@ -356,9 +322,9 @@ function renderHtml(plan: Plan): string {
     .map((w) => {
       const tone = statusTone(w.status);
       return `<div class="gantt-row">
-        <div class="gantt-label"><span class="mono">${w.id}</span> ${escapeHtml(w.name)}</div>
+        <div class="gantt-label"><span class="mono">${escapeHtml(w.id)}</span> ${escapeHtml(w.name)}</div>
         <div class="gantt-track">
-          <div class="gantt-bar ${tone}" style="left:${w.left}%;width:${w.width}%" title="${w.start} → ${w.end}"></div>
+          <div class="gantt-bar ${tone}" style="left:${w.left}%;width:${w.width}%" title="${escapeHtml(w.start)} → ${escapeHtml(w.end)}"></div>
         </div>
       </div>`;
     })
@@ -369,12 +335,12 @@ function renderHtml(plan: Plan): string {
       const indent = "&nbsp;".repeat(Math.max(0, (w.level - 1) * 3));
       const tone = statusTone(w.status);
       return `<tr class="lvl-${w.level}">
-        <td class="mono">${w.id}</td>
+        <td class="mono">${escapeHtml(w.id)}</td>
         <td>${indent}<strong>${escapeHtml(w.name)}</strong>${w.nameJa ? `<div class="ja">${escapeHtml(w.nameJa)}</div>` : ""}</td>
         <td><span class="pill ${tone}">${statusLabel(w.status)}</span></td>
         <td class="num">${w.pct}%</td>
         <td>${escapeHtml(w.owner)}</td>
-        <td class="mono">${w.start}<br/>${w.end}</td>
+        <td class="mono">${escapeHtml(w.start)}<br/>${escapeHtml(w.end)}</td>
         <td class="num">${w.effortDays}</td>
         <td>${escapeHtml(w.deliverable)}${w.acceptance ? `<div class="ja">AC: ${escapeHtml(w.acceptance)}</div>` : ""}</td>
         <td class="mono">${escapeHtml(w.checklistRef)}</td>
@@ -385,8 +351,8 @@ function renderHtml(plan: Plan): string {
   const milestoneHtml = plan.milestones
     .map(
       (m) => `<div class="ms">
-        <div class="ms-id">${m.id}</div>
-        <div class="ms-date">${m.date}</div>
+        <div class="ms-id">${escapeHtml(m.id)}</div>
+        <div class="ms-date">${escapeHtml(m.date)}</div>
         <div class="ms-name">${escapeHtml(m.name)}</div>
         <div class="ms-exit">${escapeHtml(m.exitCriteria)}</div>
         <span class="pill ${statusTone(m.status)}">${statusLabel(m.status)}</span>
@@ -395,7 +361,7 @@ function renderHtml(plan: Plan): string {
     .join("\n");
 
   const roleIds = plan.roles.map((r) => r.id);
-  const raciHead = ["Activity", ...roleIds].map((h) => `<th>${h}</th>`).join("");
+  const raciHead = ["Activity", ...roleIds].map((h) => `<th>${escapeHtml(h)}</th>`).join("");
   const raciBody = plan.raci
     .map((row) => {
       const cells = [row.activity, ...roleIds.map((id) => row[id] ?? "—")]
@@ -408,12 +374,12 @@ function renderHtml(plan: Plan): string {
   const raidBody = plan.raid
     .map(
       (r) => `<tr>
-        <td class="mono">${r.id}</td>
-        <td>${r.type}</td>
+        <td class="mono">${escapeHtml(r.id)}</td>
+        <td>${escapeHtml(r.type)}</td>
         <td>${escapeHtml(r.title)}</td>
-        <td class="center">${r.impact}</td>
-        <td class="center">${r.likelihood}</td>
-        <td>${r.owner}</td>
+        <td class="center">${escapeHtml(r.impact)}</td>
+        <td class="center">${escapeHtml(r.likelihood)}</td>
+        <td>${escapeHtml(r.owner)}</td>
         <td>${escapeHtml(r.response)}</td>
         <td><span class="pill ${statusTone(r.status)}">${statusLabel(r.status)}</span></td>
       </tr>`,
@@ -423,16 +389,16 @@ function renderHtml(plan: Plan): string {
   const sprintBody = plan.sprints
     .map(
       (s) => `<tr>
-        <td class="mono">${s.id}</td>
+        <td class="mono">${escapeHtml(s.id)}</td>
         <td>${escapeHtml(s.name)}</td>
-        <td class="mono">${s.start} → ${s.end}</td>
+        <td class="mono">${escapeHtml(s.start)} → ${escapeHtml(s.end)}</td>
         <td>${escapeHtml(s.goal)}</td>
       </tr>`,
     )
     .join("\n");
 
   return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -525,8 +491,8 @@ function renderHtml(plan: Plan): string {
   <div class="page">
     <div class="actions"><button onclick="window.print()">Print / Save as PDF</button></div>
     <header class="cover">
-      <p class="eyebrow">Tier-1 Style PMO Delivery Pack</p>
-      <div class="banner"><span class="pill ${overallClass}">${escapeHtml(overall)}</span><span class="sub" style="margin:0">${escapeHtml(String(meta.overallStatusNote || ""))}</span></div>
+      <p class="eyebrow">PMO デリバリーパック</p>
+      <div class="banner"><span class="pill ${overallClass}">${escapeHtml(overall)}</span><span class="sub" style="margin:0">${escapeHtml(String(meta.overallStatusNote || ""))}</span>${healthConflict ? `<span class="sub" style="margin:0">（自動判定は ${escapeHtml(healthReport.status)} です。手入力と一致していません）</span>` : ""}</div>
       <h1>${escapeHtml(metaText(meta, "projectName"))}</h1>
       <p class="sub">${escapeHtml(metaText(meta, "projectNameJa", metaText(meta, "projectCode")))} · ${escapeHtml(metaText(meta, "baselineVersion", metaText(meta, "baseline")))} · Doc v${escapeHtml(metaText(meta, "documentVersion", "1"))}</p>
       <div class="meta-grid">
@@ -540,7 +506,7 @@ function renderHtml(plan: Plan): string {
         <div class="meta-item"><div class="k">Note</div><div class="v">${escapeHtml(metaText(meta, "currencyNote"))}</div></div>
       </div>
       <div class="stats">
-        <div class="stat"><div class="n">${weighted.toFixed(0)}%</div><div class="l">Weighted L3+ progress</div></div>
+        <div class="stat"><div class="n">${weighted === null ? "—" : `${weighted.toFixed(0)}%`}</div><div class="l">加重進捗（末端・工数加重）</div></div>
         <div class="stat"><div class="n">${done}</div><div class="l">Done</div></div>
         <div class="stat"><div class="n">${wip}</div><div class="l">In progress</div></div>
         <div class="stat"><div class="n">${todo}</div><div class="l">To do</div></div>
@@ -549,8 +515,8 @@ function renderHtml(plan: Plan): string {
     </header>
 
     <section>
-      <h2>1. Operating model（一人多帽）</h2>
-      <p class="section-lead">看板与签核按角色隔离；执行者同一人。客户叙事用左侧 Sponsor，交付用三顶执行帽。</p>
+      <h2>1. 運営モデル（一人多帽）</h2>
+      <p class="section-lead">看板と承認は役割で分離し、実行者は同一人物です。顧客向けの説明は左の Sponsor、交付は3つの実行帽で行います。</p>
       ${orgHtml}
     </section>
 
@@ -566,7 +532,7 @@ function renderHtml(plan: Plan): string {
 
     <section>
       <h2>4. Gantt（L1–L2 client view）</h2>
-      <p class="section-lead">绿=Done / 琥珀=In Progress / 红=To Do。竖线=数据日期。详细 L3 见 WBS 表与 CSV。</p>
+      <p class="section-lead">緑=完了 / 琥珀=進行中 / 赤=未着手。縦線=データ日。詳細は WBS 表と CSV を参照してください。</p>
       <div class="gantt-wrap">
         <div class="gantt-axis"><span>${planStart}</span><span>Data date ${dataDate}</span><span>${planEnd}</span></div>
         <div class="today-line"></div>
@@ -576,7 +542,7 @@ function renderHtml(plan: Plan): string {
 
     <section>
       <h2>5. WBS dictionary（含交付物与验收）</h2>
-      <p class="section-lead">客户向编码 1–6；checklistRef 追溯工程门禁（P0/P1）。</p>
+      <p class="section-lead">顧客向けコード 1–6。checklistRef で工程ゲート（P0/P1）を追跡します。</p>
       <table>
         <thead><tr><th>WBS</th><th>Name</th><th>Status</th><th>%</th><th>Owner</th><th>Dates</th><th>Effort</th><th>Deliverable / AC</th><th>Eng Ref</th></tr></thead>
         <tbody>${wbsRows}</tbody>
@@ -642,8 +608,9 @@ function main() {
   writeFileSync(join(outDir, "plan.html"), renderHtml(plan), "utf8");
   writeFileSync(join(outDir, "reports", "weekly-status-latest.md"), renderWeekly(plan), "utf8");
 
-  const leafLike = plan.wbs.filter((w) => w.level >= 3);
-  const controlHealth = deriveHealth(leafLike, String(plan.meta.dataDate), plan.calendar);
+  const leafLike = leafTasks(plan.wbs);
+  const healthReport = deriveHealthReport(leafLike, String(plan.meta.dataDate), plan.calendar);
+  const declaredStatus = typeof plan.meta.overallStatus === "string" ? plan.meta.overallStatus : null;
   writeFileSync(
     join(outDir, "status-summary.json"),
     `${JSON.stringify(
@@ -652,11 +619,14 @@ function main() {
         overallStatus: plan.meta.overallStatus,
         productVersion: plan.meta.productVersion,
         baselineVersion: plan.meta.baselineVersion,
-        weightedProgressPct: averageProgress(leafLike),
-        derivedHealth: controlHealth,
+        // 末端タスクの工数加重。末端が無い場合は null（0% と偽らない）。
+        weightedProgressPct: weightedProgress(leafLike),
+        derivedHealth: healthReport.status,
+        healthReasons: healthReport.reasons,
+        healthConflict: declaredStatus !== null && declaredStatus !== healthReport.status,
         variances: leafLike.map((task) => ({
           id: task.id,
-          ...progressVariance(task, String(plan.meta.dataDate)),
+          ...progressVariance(task, String(plan.meta.dataDate), plan.calendar),
         })),
         counts: {
           done: leafLike.filter((w) => w.status === "done").length,
@@ -677,4 +647,7 @@ function main() {
   console.log(`  open: ${join(outDir, "plan.html")}`);
 }
 
-main();
+// CLI として直接実行された場合だけ main を走らせる（テストからの import を可能にする）。
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}
