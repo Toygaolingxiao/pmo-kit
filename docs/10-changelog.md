@@ -5,10 +5,10 @@
 
 ---
 
-## [Unreleased]
+## [1.2.0] - 2026-11-21
 
 ### Added
-- 計算口径の契約テストと成果物テスト（`tests/`）。GitHub Actions の CI 案は PR 本文に収録（workflow スコープの都合でファイル追加は別途）。
+- 計算口径の契約テストと成果物テスト（`tests/`）。GitHub Actions の CI（`.github/workflows/ci.yml`：test と typecheck）を有効化。
 - `status-summary.json` に `healthReasons` と `healthConflict` を追加。健康度は理由付きで返る。
 
 ### Changed

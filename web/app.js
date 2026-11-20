@@ -167,7 +167,7 @@ function renderOverview() {
   if (projEl) projEl.textContent = meta.projectName || "プロジェクト計画・進捗管理";
 
   const baseEl = $("#baseline");
-  if (baseEl) baseEl.textContent = meta.baseline || "Ver 1.1.2";
+  if (baseEl) baseEl.textContent = meta.baseline || "Ver 1.2.0";
 
   // #appVersion は製品バージョンの表示専用。計画の baseline では上書きしない
   // （製品版と計画基線は別物。docs/01-versioning.md の正本規則に従う）。
