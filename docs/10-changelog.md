@@ -5,6 +5,24 @@
 
 ---
 
+## [Unreleased]
+
+### Added
+- 計算口径の契約テストと成果物テスト（`tests/`）、GitHub Actions の CI（test + typecheck）。
+- `status-summary.json` に `healthReasons` と `healthConflict` を追加。健康度は理由付きで返る。
+
+### Changed
+- 加重進捗を末端タスクの工数加重に統一（CLI/Web 同一定義）。末端の定義は「子を持たないタスク」に変更し、level 固定値の集計を廃止。
+- Mermaid ガントに依存関係（after）を出力。週次ステータスの集計を末端口径に統一し、次の焦点を終了日順にした。
+- `schema/project-plan.schema.md` を v0.2 に更新し、実装済みフィールドと検証規則・指標口径を明記。
+
+### Fixed
+- 開始日を過ぎた未着手タスクが差異 0 / 健康度 GREEN に隠れる問題（逾期未開工を behind として扱う）。
+- 末端タスクが無い計画で進捗 0%・GREEN と表示される問題（null / UNKNOWN と表示）。
+- CSV の数式インジェクション、Mermaid のカンマ・セミコロンによる構文破壊、週次 Markdown の `|` による表破壊、plan.html の未エスケープ字段。
+- Web で計画の baseline が製品バージョン表示（#appVersion）を上書きする問題。
+- `package.json` の実効しない `bin` 項目を削除（private パッケージのため）。
+
 ## [1.1.2] - 2026-11-20
 
 ### Fixed
