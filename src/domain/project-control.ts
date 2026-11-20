@@ -1,4 +1,4 @@
-export type ProjectStatus = "GREEN" | "AMBER" | "RED";
+export type ProjectStatus = "GREEN" | "AMBER" | "RED" | "UNKNOWN";
 
 export type CalendarHoliday = {
   date: string;
@@ -34,7 +34,24 @@ export type ControlTask = {
   pct?: number;
   status?: string;
   level?: number;
+  effortDays?: number;
 };
+
+/**
+ * 末端タスクの統一定義：他のタスクの親になっていないタスク。
+ * CLI と Web（web/app.js の hasChildTasks 判定）で同じ定義を使う。
+ * level の固定値（>=3 等）では判定しない。
+ */
+export function leafTasks<T extends { id: string }>(tasks: T[]): T[] {
+  const parentIds = new Set<string>();
+  for (const task of tasks) {
+    const parts = task.id.split(".");
+    for (let i = 1; i < parts.length; i++) {
+      parentIds.add(parts.slice(0, i).join("."));
+    }
+  }
+  return tasks.filter((task) => !parentIds.has(task.id));
+}
 
 export type ProgressVariance = {
   plannedPct: number;
@@ -101,7 +118,9 @@ export function progressVariance(
   calendar: ProjectCalendar = {},
 ): ProgressVariance {
   const actualPct = Math.min(100, Math.max(0, task.pct ?? 0));
-  if (!task.start || !task.end || task.status === "todo" && actualPct === 0) {
+  // 未着手とみなすのは「まだ開始日が来ていない」場合だけ。開始日を過ぎた
+  // todo は計画進捗との差で behind になる（逾期未開工を隠さない）。
+  if (!task.start || !task.end || (actualPct === 0 && dataDate < task.start)) {
     return { plannedPct: 0, actualPct, variancePct: 0, direction: "not_started" };
   }
   const plannedPct = plannedProgress(task.start, task.end, dataDate, calendar);
@@ -115,15 +134,62 @@ export function averageProgress(tasks: ControlTask[]): number {
   return Number((tasks.reduce((sum, task) => sum + (task.pct ?? 0), 0) / tasks.length).toFixed(1));
 }
 
+/**
+ * 工数加重進捗。重みは effortDays（正でない場合は 1）で、Web 側
+ * （web/app.js）の計算と同一口径。対象が空なら null（0% と表示しない）。
+ */
+export function weightedProgress(tasks: ControlTask[]): number | null {
+  if (tasks.length === 0) return null;
+  let totalWeight = 0;
+  let earned = 0;
+  for (const task of tasks) {
+    const weight = typeof task.effortDays === "number" && task.effortDays > 0 ? task.effortDays : 1;
+    totalWeight += weight;
+    earned += weight * Math.min(100, Math.max(0, task.pct ?? 0)) / 100;
+  }
+  if (totalWeight === 0) return null;
+  return Number(((earned / totalWeight) * 100).toFixed(1));
+}
+
+export type HealthReport = {
+  status: ProjectStatus;
+  reasons: string[];
+  evaluatedCount: number;
+};
+
+/**
+ * 健康度は呼び出し側が渡した末端タスク集合でのみ判定する。
+ * deferred は判定から外す（保留は遅延ではない）。対象が空なら
+ * UNKNOWN を返し、理由を必ず付ける。
+ */
+export function deriveHealthReport(
+  tasks: ControlTask[],
+  dataDate: string,
+  calendar: ProjectCalendar = {},
+): HealthReport {
+  const eligible = tasks.filter((task) => task.status !== "deferred");
+  if (eligible.length === 0) {
+    return { status: "UNKNOWN", reasons: ["判定対象の末端タスクがありません"], evaluatedCount: 0 };
+  }
+  const behind = eligible
+    .map((task) => ({ id: task.id, variance: progressVariance(task, dataDate, calendar) }))
+    .filter((item) => item.variance.direction === "behind");
+  const reasons = behind.map(
+    (item) => `${item.id}: 計画 ${item.variance.plannedPct}% / 実績 ${item.variance.actualPct}%（差 ${item.variance.variancePct}pt）`,
+  );
+  if (behind.some((item) => item.variance.variancePct <= -20)) {
+    return { status: "RED", reasons, evaluatedCount: eligible.length };
+  }
+  if (behind.length > 0) {
+    return { status: "AMBER", reasons, evaluatedCount: eligible.length };
+  }
+  return { status: "GREEN", reasons: [], evaluatedCount: eligible.length };
+}
+
 export function deriveHealth(
   tasks: ControlTask[],
   dataDate: string,
   calendar: ProjectCalendar = {},
 ): ProjectStatus {
-  const variances = tasks
-    .filter((task) => task.level === undefined || task.level >= 3)
-    .map((task) => progressVariance(task, dataDate, calendar));
-  if (variances.some((item) => item.direction === "behind" && item.variancePct <= -20)) return "RED";
-  if (variances.some((item) => item.direction === "behind")) return "AMBER";
-  return "GREEN";
+  return deriveHealthReport(tasks, dataDate, calendar).status;
 }

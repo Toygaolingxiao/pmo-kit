@@ -169,8 +169,8 @@ function renderOverview() {
   const baseEl = $("#baseline");
   if (baseEl) baseEl.textContent = meta.baseline || "Ver 1.1.2";
 
-  const appVerEl = $("#appVersion");
-  if (appVerEl) appVerEl.textContent = meta.baseline ? (meta.baseline.startsWith("Ver") ? meta.baseline : `Ver ${meta.baseline}`) : "Ver 1.1.2";
+  // #appVersion は製品バージョンの表示専用。計画の baseline では上書きしない
+  // （製品版と計画基線は別物。docs/01-versioning.md の正本規則に従う）。
 
   const ownerEl = $("#projectOwner");
   if (ownerEl) ownerEl.textContent = meta.pm || "GAO";
